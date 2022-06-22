@@ -7,7 +7,7 @@ import argparse
 import http.server
 
 from prometheus_client.core import REGISTRY
-from prometheus_client.core import GaugeMetricFamily
+from prometheus_client.core import GaugeMetricFamily, Enum
 from prometheus_client.exposition import MetricsHandler
 
 CTL_ALLOC = None
@@ -516,10 +516,29 @@ class KnotCollector(object):
             for zone, zone_data in zone_status["zone"].items():
                 for ty, data in zone_data.items():
                     name = ('knot_status_' + item).replace('-', '_')
-                    m = GaugeMetricFamily(name, '',
-                            labels=['zone', 'type'])
-                    m.add_metric([zone, ty], data)
-                    yield m
+                    if type(data) == str:
+                        if data == 'not scheduled':
+                            next
+                        values = None
+                        if ty == 'transaction':
+                            next
+                        if ty == 'freeze':
+                            next
+                        if ty == 'role':
+                            values = ['master', 'slave']
+
+                        if values is not None:
+                            m = Enum(name, '',
+                                    states=values)
+                            m.labels(zone=zone, kind=ty).set(data)
+                            yield m
+                        else:
+                            print(ty)
+                    else:
+                        m = GaugeMetricFamily(name, '',
+                                labels=['zone', 'type'])
+                        m.add_metric([zone, ty], data)
+                        yield m
 
         print(zone_status)
 
